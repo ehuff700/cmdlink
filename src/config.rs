@@ -21,14 +21,18 @@ struct Aliases {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-struct AliasValues {
+pub struct AliasValues {
     /// An optional description for the alias.
-    description: Option<String>,
+    pub description: Option<String>,
     /// The command to be executed when the alias is invoked.
-    cmd: String,
+    pub cmd: String,
 }
 
 impl Config {
+    pub fn aliases(&self) -> &HashMap<AliasName, AliasValues> {
+        &self.aliases.all
+    }
+
     /// Creates an empty Config instance.
     fn empty() -> Self {
         Self {
@@ -54,5 +58,38 @@ impl Config {
         // Otherwise, open the file and read the contents to a Config instance.
         let config_str = std::fs::read_to_string(config_file_path).map_err(Error::ConfigRead)?;
         Ok(toml::from_str(&config_str)?)
+    }
+
+    /// Inserts a new alias to the config.toml file.
+    pub fn insert_alias(
+        &mut self,
+        alias: &str,
+        cmd: &str,
+        description: Option<String>,
+    ) -> Result<()> {
+        self.aliases.all.insert(
+            alias.to_string(),
+            AliasValues {
+                description,
+                cmd: cmd.to_string(),
+            },
+        );
+
+        self.save()?;
+        Ok(())
+    }
+
+    pub fn remove_alias(&mut self, alias: &str) -> Result<()> {
+        if self.aliases.all.remove(alias).is_none() {
+            warn!("alias \"{alias}\" did not exist in the config")
+        };
+        Ok(())
+    }
+
+    /// Saves the current Config instance to the config.toml file.
+    fn save(&self) -> Result<()> {
+        let config_file_path = crate::PROJECT_DIR.join("config.toml");
+        let cfg_bytes = toml::to_string(&self)?.into_bytes();
+        std::fs::write(config_file_path, cfg_bytes).map_err(Error::ConfigWrite)
     }
 }
