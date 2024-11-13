@@ -4,7 +4,6 @@ mod error;
 mod cli;
 
 use cli::Cli;
-use config::Config;
 pub use error::Result;
 use std::{path::Path, sync::LazyLock};
 
@@ -21,13 +20,8 @@ pub static PROJECT_DIR: LazyLock<&'static Path> = LazyLock::new(|| {
     Box::leak(base_path.into_boxed_path())
 });
 
-fn entry() -> Result<()> {
-    Cli::run(&mut Config::new()?)?;
-    Ok(())
-}
-
 fn main() {
-    if let Err(e) = entry() {
+    if let Err(e) = Cli::run() {
         eprintln!("fatal error occurred: {}", e);
     }
 }

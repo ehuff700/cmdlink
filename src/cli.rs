@@ -5,7 +5,7 @@ use tracing::level_filters::LevelFilter;
 #[derive(Args, Debug)]
 pub struct Verbosity {
     #[arg(short, long, action = clap::ArgAction::Count, global = true)]
-    /// Increases the verbosity level. -v for WARN, -vv for INFO, -vvv for DEBUG, -vvvv for TRACE
+    /// Increases the verbosity level. -v for INFO (default), -vv for DEBUG, -vvv for TRACE
     verbose: u8,
     #[arg(short, long, action = clap::ArgAction::Count, global = true, conflicts_with = "verbose")]
     /// Silences all logging
@@ -19,12 +19,10 @@ impl Verbosity {
             return None;
         }
 
-        Some(match self.verbose.min(4) {
-            1 => LevelFilter::WARN,
-            2 => LevelFilter::INFO,
-            3 => LevelFilter::DEBUG,
-            4 => LevelFilter::TRACE,
-            _ => LevelFilter::ERROR, // Default to ERROR
+        Some(match self.verbose.min(3) {
+            2 => LevelFilter::DEBUG,
+            3 => LevelFilter::TRACE,
+            _ => LevelFilter::INFO, // Default to ERROR
         })
     }
 }
@@ -67,13 +65,13 @@ impl Cli {
     }
 
     /// Runs the CLI application by processing the provided command-line arguments.
-    pub fn run(cfg: &mut Config) -> Result<()> {
+    pub fn run() -> Result<()> {
+        let mut cfg = Config::new()?;
         let cli = Cli::parse();
         cli.setup_logging();
 
         match cli.subcommand {
             Commands::Refresh => {
-                // let cfg = Config::new()?;
                 info!("refreshing command links...");
             }
             Commands::Add {
@@ -82,21 +80,19 @@ impl Cli {
                 cmd,
             } => {
                 cfg.insert_alias(&alias, &cmd, description)?;
-                info!("successfully added alias: {alias} for command: \"{cmd}\"");
             }
             Commands::Remove { alias } => {
                 cfg.remove_alias(&alias)?;
-                info!("successfully removed alias: {alias}");
             }
             Commands::Display => {
-                let map = cfg.aliases();
-                if map.is_empty() {
+                let aliases = cfg.aliases();
+                if aliases.is_empty() {
                     info!("cmdlink has no aliases available to display");
                     return Ok(());
                 }
 
                 println!("      Aliases       |     Description     ");
-                for (k, v) in cfg.aliases().iter() {
+                for (k, v) in aliases.iter() {
                     let description = v.description.as_ref().unwrap_or(&v.cmd);
                     println!("      {k}         |       {description}       ")
                 }

@@ -6,18 +6,11 @@ use serde::{Deserialize, Serialize};
 
 type AliasName = String;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Default, Debug, Serialize, Deserialize)]
 /// Configuration file for Cmdlink.
 pub struct Config {
     /// List of aliases defined in the config.toml file.
-    aliases: Aliases,
-}
-
-#[derive(Debug, Default, Serialize, Deserialize)]
-/// Aliases defined in the config.toml file.
-struct Aliases {
-    #[serde(flatten)]
-    all: HashMap<AliasName, AliasValues>,
+    aliases: HashMap<AliasName, AliasValues>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -29,16 +22,11 @@ pub struct AliasValues {
 }
 
 impl Config {
-    pub fn aliases(&self) -> &HashMap<AliasName, AliasValues> {
-        &self.aliases.all
-    }
-
     /// Creates an empty Config instance.
     fn empty() -> Self {
-        Self {
-            aliases: Aliases::default(),
-        }
+        Config::default()
     }
+
     /// Creates a new Config instance from the config.toml file.
     ///
     /// If the config.toml file does not exist, it creates a new one with default values.
@@ -67,7 +55,7 @@ impl Config {
         cmd: &str,
         description: Option<String>,
     ) -> Result<()> {
-        self.aliases.all.insert(
+        self.aliases.insert(
             alias.to_string(),
             AliasValues {
                 description,
@@ -76,16 +64,27 @@ impl Config {
         );
 
         self.save()?;
+        info!("successfully added alias: {alias} for command: \"{cmd}\"");
         Ok(())
     }
 
+    /// Removes an alias with the given alias name
+    /// This function will automatically remove the associated links as well.
+    /// If the function
     pub fn remove_alias(&mut self, alias: &str) -> Result<()> {
-        if self.aliases.all.remove(alias).is_none() {
-            warn!("alias \"{alias}\" did not exist in the config")
+        if self.aliases.remove(alias).is_none() {
+            warn!("alias \"{alias}\" did not exist in the config");
+            return Ok(());
         };
+        info!("successfully removed alias: {alias}");
         Ok(())
     }
 
+    /// Getter for the inner hashmap containing the alias names and [AliasValues] struct.
+    pub fn aliases(&self) -> &HashMap<AliasName, AliasValues> {
+        &self.aliases
+    }
+    
     /// Saves the current Config instance to the config.toml file.
     fn save(&self) -> Result<()> {
         let config_file_path = crate::PROJECT_DIR.join("config.toml");
