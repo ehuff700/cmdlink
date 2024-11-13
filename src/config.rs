@@ -3,8 +3,18 @@ use std::collections::HashMap;
 use crate::error::Error;
 use crate::Result;
 use serde::{Deserialize, Serialize};
+use tabled::{settings::Style, Table};
 
 type AliasName = String;
+
+#[derive(Tabled)]
+/// Helper struct to display alias information in a table format.
+struct AliasInfo {
+    #[tabled(rename = "Alias")]
+    alias: String,
+    #[tabled(rename = "Description")]
+    description: String,
+}
 
 #[derive(Default, Debug, Serialize, Deserialize)]
 /// Configuration file for Cmdlink.
@@ -80,11 +90,28 @@ impl Config {
         Ok(())
     }
 
-    /// Getter for the inner hashmap containing the alias names and [AliasValues] struct.
-    pub fn aliases(&self) -> &HashMap<AliasName, AliasValues> {
-        &self.aliases
+    /// Prints all the aliases defined in the config.toml file.
+    pub fn print_aliases(&self) {
+        if self.aliases.is_empty() {
+            info!("cmdlink has no aliases available to display");
+            return;
+        }
+        info!("Available aliases:");
+        let alias_data: Vec<AliasInfo> = self
+            .aliases
+            .iter()
+            .map(|(k, v)| AliasInfo {
+                alias: k.clone(),
+                description: v.description.clone().unwrap_or_else(|| v.cmd.clone()),
+            })
+            .collect();
+
+        let mut table = Table::new(&alias_data);
+        table.with(Style::rounded());
+
+        println!("{}", table);
     }
-    
+
     /// Saves the current Config instance to the config.toml file.
     fn save(&self) -> Result<()> {
         let config_file_path = crate::PROJECT_DIR.join("config.toml");

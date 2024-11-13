@@ -1,13 +1,6 @@
-use std::collections::HashMap;
-
-use crate::{
-    config::{AliasValues, Config},
-    Result,
-};
+use crate::{config::Config, Result};
 use clap::{Args, Parser, Subcommand};
 use tracing::level_filters::LevelFilter;
-
-use tabled::{settings::Style, Table};
 
 #[derive(Args, Debug)]
 pub struct Verbosity {
@@ -85,50 +78,10 @@ impl Cli {
                 alias,
                 description,
                 cmd,
-            } => {
-                cfg.insert_alias(&alias, &cmd, description)?;
-            }
-            Commands::Remove { alias } => {
-                cfg.remove_alias(&alias)?;
-            }
-            Commands::Display => {
-                let aliases = cfg.aliases();
-                if aliases.is_empty() {
-                    info!("cmdlink has no aliases available to display");
-                    return Ok(());
-                }
-
-                info!("Available aliases:");
-                AliasInfo::print_aliases(aliases);
-            }
+            } => cfg.insert_alias(&alias, &cmd, description)?,
+            Commands::Remove { alias } => cfg.remove_alias(&alias)?,
+            Commands::Display => cfg.print_aliases(),
         }
         Ok(())
-    }
-}
-
-#[derive(Tabled)]
-/// Helper struct to display alias information in a table format.
-struct AliasInfo {
-    #[tabled(rename = "Alias")]
-    alias: String,
-    #[tabled(rename = "Description")]
-    description: String,
-}
-
-impl AliasInfo {
-    /// Given the aliases hashmap from the config, print it out in tabular format.
-    fn print_aliases(aliases: &HashMap<String, AliasValues>) {
-        let alias_data: Vec<AliasInfo> = aliases
-            .iter()
-            .map(|(k, v)| AliasInfo {
-                alias: k.clone(),
-                description: v.description.clone().unwrap_or_else(|| v.cmd.clone()),
-            })
-            .collect();
-
-        let mut table = Table::new(&alias_data);
-        table.with(Style::rounded());
-
-        println!("{}", table);
     }
 }
