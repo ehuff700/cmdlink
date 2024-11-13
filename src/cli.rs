@@ -45,7 +45,8 @@ pub enum Commands {
 	Refresh,
 	/// Displays all current aliases and their associated descriptions.
 	Display,
-	/// Adds a new command link to the config file, adding the appropriate bin.
+	/// Adds a new command link to the config file, adding the appropriate bin
+	/// to the `bins` directory.
 	Add {
 		/// The alias for the command link.
 		alias: String,
