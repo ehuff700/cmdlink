@@ -80,6 +80,7 @@ impl Config {
 			warn!("alias \"{alias}\" did not exist in the config");
 			return Ok(());
 		};
+		self.save()?;
 		info!("successfully removed alias: {alias}");
 		Ok(())
 	}
