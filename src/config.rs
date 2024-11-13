@@ -74,7 +74,6 @@ impl Config {
 
 	/// Removes an alias with the given alias name
 	/// This function will automatically remove the associated links as well.
-	/// If the function
 	pub fn remove_alias(&mut self, alias: &str) -> Result<()> {
 		if self.aliases.remove(alias).is_none() {
 			warn!("alias \"{alias}\" did not exist in the config");
