@@ -1,8 +1,9 @@
+#![feature(str_as_str)]
 mod config;
 mod error;
 
 mod cli;
-
+mod platform_binary;
 use std::{path::Path, sync::LazyLock};
 
 use cli::Cli;

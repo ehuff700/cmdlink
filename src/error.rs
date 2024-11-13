@@ -3,16 +3,24 @@ use thiserror::Error;
 #[derive(Error, Debug)]
 /// Error container for all Cmdlink errors
 pub enum Error {
-	#[error("failed to create project directory: {0}")]
+	#[error("Failed to create project directory: {0}")]
 	ProjectDirCreation(#[source] std::io::Error),
-	#[error("failed to read config file: {0}")]
+	#[error("Failed to read config file: {0}")]
 	ConfigRead(#[source] std::io::Error),
-	#[error("error writing config data: {0}")]
+	#[error("Error writing config data: {0}")]
 	ConfigWrite(#[source] std::io::Error),
-	#[error("failed to parse config file: {0}")]
+	#[error("Failed to parse config file: {0}")]
 	ConfigParse(#[from] toml::de::Error),
-	#[error("failed to serialize config data: {0}")]
+	#[error("Failed to serialize config data: {0}")]
 	ConfigSerialize(#[from] toml::ser::Error),
+	#[error("Failed to create link for alias '{0}': {1}")]
+	LinkCreation(String, #[source] std::io::Error),
+	#[error("Alias '{0}' already exists")]
+	LinkAlreadyExists(String),
+	#[error("Failed to update link for alias '{0}': {1}")]
+	LinkUpdate(String, #[source] std::io::Error),
+	#[error("Failed to remove link for alias '{0}': {1}")]
+	LinkRemoval(String, #[source] std::io::Error),
 }
 
 /// Cmdlink result type

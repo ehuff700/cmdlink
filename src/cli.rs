@@ -40,13 +40,14 @@ pub struct Cli {
 
 #[derive(Debug, Subcommand)]
 pub enum Commands {
-	/// Refreshes cmdlink by retrieving the latest config file and updating the
-	/// command links.
+	/// Refreshes links by retrieving the latest config file and updating the
+	/// associated binaries in the `bins` directory.
 	Refresh,
-	/// Displays all current aliases and their associated descriptions if any.
+	/// Displays all current aliases and their associated descriptions.
 	Display,
 	/// Adds a new command link to the config file, adding the appropriate bin.
 	Add {
+		/// The alias for the command link.
 		alias: String,
 		#[arg(short, long = "desc")]
 		/// An optional description for the alias.
@@ -54,6 +55,9 @@ pub enum Commands {
 		#[arg(short, long)]
 		/// The command to run in place of the alias.
 		cmd: String,
+		#[arg(short, long, default_value = "false")]
+		/// Forces the creation of the alias even if it already exists.
+		force: bool,
 	},
 	/// Removes a command link from the config file and bins.
 	Remove { alias: String },
@@ -70,21 +74,22 @@ impl Cli {
 	/// Runs the CLI application by processing the provided command-line
 	/// arguments.
 	pub fn run() -> Result<()> {
-		let mut cfg = Config::new()?;
 		let cli = Cli::parse();
 		cli.setup_logging();
 
+		// Cfg must be after logging setup to ensure logging is initialized
+		let mut cfg = Config::new()?;
+
 		match cli.subcommand {
-			Commands::Refresh => {
-				info!("refreshing command links...");
-			},
+			Commands::Refresh => cfg.refresh_links()?,
 			Commands::Add {
 				alias,
 				description,
 				cmd,
-			} => cfg.insert_alias(&alias, &cmd, description)?,
+				force,
+			} => cfg.create_alias(alias, cmd, description, force)?,
 			Commands::Remove { alias } => cfg.remove_alias(&alias)?,
-			Commands::Display => cfg.print_aliases(),
+			Commands::Display => cfg.display_aliases(),
 		}
 		Ok(())
 	}
