@@ -7,6 +7,7 @@ edition = "2021"
 clap = { version = "4.5.20", features = ["derive"] }
 dirs = "5.0.1"
 serde = { version = "1.0.215", features = ["derive"] }
+tabled = "0.16.0"
 thiserror = "2.0.3"
 toml = "0.8.19"
 tracing = "0.1.40"

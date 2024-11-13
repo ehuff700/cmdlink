@@ -10,6 +10,9 @@ use std::{path::Path, sync::LazyLock};
 #[macro_use]
 extern crate tracing;
 
+#[macro_use]
+extern crate tabled;
+
 /// A static reference to the project directory.
 pub static PROJECT_DIR: LazyLock<&'static Path> = LazyLock::new(|| {
     let base_path = dirs::home_dir()
