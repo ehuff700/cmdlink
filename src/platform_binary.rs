@@ -1,5 +1,4 @@
 use std::{
-	borrow::Cow,
 	fs::File,
 	io::{ErrorKind, Write},
 	path::Path,
@@ -19,22 +18,22 @@ pub enum Action {
 #[derive(Debug)]
 /// A struct representing a platform-specific binary/link. These are created and
 /// managed by the `Config` struct to create aliases for commands.
-pub struct PlatformBinary<'a> {
+pub struct PlatformBinary {
 	/// Whether or not the platform binary file exists at it's expected path.
 	exists: bool,
 	/// The action to be taken for the platform binary file, see [Action]
 	action: Action,
 	/// The alias for the platform binary.
-	alias: Cow<'a, str>,
+	alias: String,
 	/// The command to run in place of the alias.
-	cmd: Cow<'a, str>,
+	cmd: String,
 }
 
-impl PlatformBinary<'_> {
-	pub fn new(alias: impl Into<Cow<'static, str>>, cmd: impl Into<Cow<'static, str>>, action: Action) -> Self {
+impl PlatformBinary {
+	pub fn new(alias: String, cmd: String, action: Action) -> Self {
 		let mut p = PlatformBinary {
-			alias: alias.into(),
-			cmd: cmd.into(),
+			alias,
+			cmd,
 			exists: false,
 			action,
 		};
@@ -93,7 +92,7 @@ impl PlatformBinary<'_> {
 	}
 }
 
-impl Link for PlatformBinary<'_> {
+impl Link for PlatformBinary {
 	fn alias(&self) -> &str { self.alias.as_str() }
 
 	fn cmd(&self) -> &str { self.cmd.as_str() }

@@ -1,4 +1,4 @@
-use std::{borrow::Cow, collections::HashMap, mem::MaybeUninit};
+use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
 use tabled::{settings::Style, Table};
@@ -24,6 +24,7 @@ struct AliasInfo<'a> {
 /// Configuration file for Cmdlink.
 pub struct Config {
 	#[serde(skip, default)]
+	/// Whether or not the config.toml file has been changed since load.
 	changed: bool,
 	/// List of aliases defined in the config.toml file.
 	aliases: HashMap<AliasName, AliasValues>,
@@ -31,8 +32,8 @@ pub struct Config {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct AliasValues {
-	#[serde(skip, default = "std::mem::MaybeUninit::uninit")]
-	pub link: MaybeUninit<PlatformBinary<'static>>,
+	#[serde(skip)]
+	pub link: Option<PlatformBinary>,
 	/// An optional description for the alias.
 	pub description: Option<String>,
 	/// The command to be executed when the alias is invoked.
@@ -52,11 +53,8 @@ impl Config {
 
 		// If the config.toml file does not exist, create a new one with default values.
 		if !config_file_path.exists() {
-			let cfg = Config::empty();
-			let cfg_bytes = toml::to_string(&cfg)?.into_bytes();
-
-			// Write the default config to the config.toml file.
-			std::fs::write(config_file_path, cfg_bytes).map_err(Error::ConfigWrite)?;
+			let mut cfg = Config::empty();
+			cfg.save()?;
 			return Ok(cfg);
 		}
 
@@ -71,37 +69,30 @@ impl Config {
 	/// Inserts a new alias to the config.toml file.
 	pub fn create_alias(&mut self, alias: String, cmd: String, description: Option<String>, force: bool) -> Result<()> {
 		let action = if force { Action::Update } else { Action::Create };
-		if matches!(action, Action::Update) {
+		if force && self.aliases.contains_key(&alias) {
 			info!("Alias already exists, overriding...");
 		}
 
-		self.aliases.insert(
-			alias.clone(),
-			AliasValues {
-				link: MaybeUninit::new(PlatformBinary::new(alias, cmd.clone(), action)),
-				description,
-				cmd: cmd.clone(),
-			},
-		);
+		let link = Some(PlatformBinary::new(alias.clone(), cmd.clone(), action));
+		self.aliases.insert(alias, AliasValues { link, description, cmd });
 		self.changed = true;
 		Ok(())
 	}
 
-	/// Removes an alias with the given alias name
-	/// This function will automatically remove the associated links as well.
+	/// Removes an alias, marking the config as changed.
 	pub fn remove_alias(&mut self, alias: &str) -> Result<()> {
-		if self.aliases.remove(alias).is_none() {
-			warn!("Alias \"{alias}\" did not exist in the config");
-			return Ok(());
-		};
-		self.changed = true;
+		if self.aliases.remove(alias).is_some() {
+			self.changed = true;
+		} else {
+			warn!("Alias \"{}\" did not exist in the config", alias);
+		}
 		Ok(())
 	}
 
 	/// Prints all the aliases defined in the config.toml file.
 	pub fn display_aliases(&self) {
 		if self.aliases.is_empty() {
-			info!("cmdlink has no aliases available to display");
+			info!("No aliases available.");
 			return;
 		}
 		info!("Available aliases:");
@@ -111,7 +102,7 @@ impl Config {
 			description: v.description.as_deref().unwrap_or(&v.cmd),
 		});
 		let mut table = Table::new(alias_iter);
-		table.with(Style::rounded());
+		table.with(Style::rounded()); // TODO: explore styling changes
 
 		println!("{}", table);
 	}
@@ -121,15 +112,13 @@ impl Config {
 	pub fn refresh_links(&mut self) -> Result<()> {
 		info!("Refreshing command links...");
 
-		// SAFETY: All links are initialized during Config creation.
-		for bad_link in self
-			.aliases
-			.values_mut()
-			.map(|AliasValues { link, .. }| unsafe { link.assume_init_mut() })
-			.filter(|l| !l.exists())
-		{
-			debug!("Bad link for alias: {}", bad_link.alias());
-			bad_link.set_action(Action::Create);
+		for alias_values in self.aliases.values_mut() {
+			if let Some(link) = alias_values.link.as_mut() {
+				if !link.exists() {
+					debug!("Bad link for alias: {}", link.alias());
+					link.set_action(Action::Create);
+				}
+			}
 		}
 		self.changed = true;
 		Ok(())
@@ -145,23 +134,22 @@ impl Config {
 
 	/// Saves link changes, if any, to the platform binary files.
 	fn save_links(&mut self) -> Result<()> {
-		let link = self
-			.aliases
-			.values_mut()
-			.map(|AliasValues { link, .. }| unsafe { link.assume_init_mut() })
-			.find(|l| !matches!(l.action(), Action::None));
-
-		if let Some(l) = link {
-			l.perform_action()?;
+		for alias_values in self.aliases.values_mut() {
+			if let Some(link) = alias_values.link.as_mut() {
+				// If the action is not None, perform it
+				if !matches!(link.action(), Action::None) {
+					link.perform_action()?;
+				}
+			}
 		}
+
 		Ok(())
 	}
 
 	/// Initializes the links for all aliases defined in the config.toml file.
 	fn initialize_links(&mut self) -> Result<()> {
 		for (alias, AliasValues { link, cmd, .. }) in self.aliases.iter_mut() {
-			let platform_binary =
-				PlatformBinary::new(Cow::Owned(alias.to_string()), Cow::Owned(cmd.to_string()), Action::None);
+			let platform_binary = PlatformBinary::new(alias.to_string(), cmd.to_string(), Action::None);
 
 			if !platform_binary.exists() {
 				warn!(
@@ -169,8 +157,7 @@ impl Config {
 					alias
 				);
 			}
-
-			link.write(platform_binary);
+			*link = Some(platform_binary);
 		}
 
 		Ok(())
