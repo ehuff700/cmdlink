@@ -1,4 +1,3 @@
-#![feature(str_as_str)]
 //! # cmdlink
 //!
 //! `cmdlink` is a command-line application built with Rust that allows you to

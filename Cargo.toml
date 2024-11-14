@@ -1,6 +1,6 @@
 [package]
 name = "cmdlink"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 authors = ["Infamous <ehuff007@gmail.com>"]
 description = "Rust based CLI tool to add aliases for commands to simplify developer workflow."
@@ -9,6 +9,7 @@ readme = "README.md"
 keywords = ["alias", "cli", "scripting", "command-line", "automation"]
 license = "MIT OR Apache-2.0"
 categories = ["command-line-interface", "command-line-utilities", "development-tools"]
+build = "build.rs"
 
 [dependencies]
 clap = { version = "4.5.20", features = ["derive"] }
