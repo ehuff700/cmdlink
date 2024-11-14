@@ -2,6 +2,13 @@
 name = "cmdlink"
 version = "0.1.0"
 edition = "2021"
+authors = ["Infamous <ehuff007@gmail.com>"]
+description = "Rust based CLI tool to add aliases for commands to simplify developer workflow."
+repository = "https://github.com/ehuff700/cmdlink"
+readme = "README.md"
+keywords = ["alias", "cli", "scripting", "command-line", "automation"]
+license = "MIT OR Apache-2.0"
+categories = ["command-line-interface", "command-line-utilities", "development-tools"]
 
 [dependencies]
 clap = { version = "4.5.20", features = ["derive"] }
@@ -20,5 +27,3 @@ dirs = "5.0.1"
 windows-registry = "0.3.0"
 base64 = "0.22.1"
 runas = "1.2.0"
-
-[package.metadata.winres]
