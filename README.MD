@@ -95,9 +95,11 @@ View the --help function to see additional information for each subcommand.
 
 Aliases are saved in a configuration file (config.toml) located in the project directory. The structure of this file is as follows:
 
+```toml
 [aliases]
 myalias = { cmd = "echo Hello, World!", description = "Prints a greeting" }
 another_alias = { cmd = "ls -la", description = "Lists all files in long format" }
+```
 
 The cmdlink application reads from this file and creates binary links in the bins directory based on the commands specified for each alias.
 Directory Structure
