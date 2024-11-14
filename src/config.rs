@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::mpsc::channel};
 
 use serde::{Deserialize, Serialize};
 use tabled::{settings::Style, Table};
@@ -81,7 +81,10 @@ impl Config {
 
 	/// Removes an alias, marking the config as changed.
 	pub fn remove_alias(&mut self, alias: &str) -> Result<()> {
-		if self.aliases.remove(alias).is_some() {
+		if let Some(old_alias) = self.aliases.get_mut(alias) {
+			// SAFETY: all links are initialized in Config creation
+			let link = unsafe { old_alias.link.as_mut().unwrap_unchecked() };
+			link.set_action(Action::Remove);
 			self.changed = true;
 		} else {
 			warn!("Alias \"{}\" did not exist in the config", alias);
@@ -126,21 +129,31 @@ impl Config {
 
 	/// Saves the current Config instance to the config.toml file.
 	fn save(&mut self) -> Result<()> {
+		self.save_links()?;
 		let config_file_path = crate::PROJECT_DIR.join("config.toml");
 		let cfg_bytes = toml::to_string(&self)?.into_bytes();
-		std::fs::write(config_file_path, cfg_bytes).map_err(Error::ConfigWrite)?;
-		self.save_links()
+		std::fs::write(config_file_path, cfg_bytes).map_err(Error::ConfigWrite)
 	}
 
 	/// Saves link changes, if any, to the platform binary files.
 	fn save_links(&mut self) -> Result<()> {
+		let (tx, rx) = channel();
+
 		for alias_values in self.aliases.values_mut() {
-			if let Some(link) = alias_values.link.as_mut() {
-				// If the action is not None, perform it
-				if !matches!(link.action(), Action::None) {
-					link.perform_action()?;
-				}
+			// Safetey: all links are initialized in Config creation
+			let link = unsafe { alias_values.link.as_mut().unwrap_unchecked() };
+			if !matches!(link.action(), Action::None) {
+				link.perform_action()?;
 			}
+			if matches!(link.action(), Action::Remove) {
+				debug!("Removing link for alias: {}", link.alias());
+				let _ = tx.send(link.alias().to_string());
+			}
+		}
+		drop(tx);
+		while let Ok(alias) = rx.recv() {
+			trace!("Removed link for alias: {}", alias);
+			self.aliases.remove(&alias);
 		}
 
 		Ok(())
