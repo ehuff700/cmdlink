@@ -63,7 +63,13 @@ fn add_win_path(new_path: &str) -> Result<(), Box<dyn std::error::Error>> {
 		.collect();
 
 	runas::Command::new("powershell.exe")
-		.args(&["-EncodedCommand", &general_purpose::STANDARD.encode(utf_16_bytes)])
+		.args(&[
+			"-ExecutionPolicy",
+			"Bypass",
+			"-NoProfile",
+			"-EncodedCommand",
+			&general_purpose::STANDARD.encode(utf_16_bytes),
+		])
 		.gui(true)
 		.status()?;
 	Ok(())
