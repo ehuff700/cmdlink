@@ -1,21 +1,19 @@
 # cmdlink
 
-`cmdlink` is a command-line application built with Rust that allows you to create and manage aliases for system commands. These aliases are saved in a configuration file and linked to scripts in the `bins` directory. This tool is designed to streamline command management and improve command-line efficiency.
+`cmdlink` is a cross-platform command-line application built with Rust that allows you to create and manage aliases for system commands. These aliases are saved in a configuration file and linked to scripts in the `bins` directory. This tool is designed to streamline command management and improve command-line efficiency.
 
-> **Note**: Currently, only Windows is supported, but cross-platform compatibility is planned for future releases.
 
 ## Features
 
 - **Add Aliases**: Create new command aliases with custom descriptions.
 - **Remove Aliases**: Easily delete aliases and their associated binaries.
 - **Display Aliases**: View all active aliases and their descriptions.
-- **Refresh Links**: Update binary links based on the latest configuration file.
 
 ## Installation
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/cmdlink.git
+   git clone https://github.com/ehuff700/cmdlink.git
    cd cmdlink
    ```
 2. Build the application using Cargo. During the build process, cmdlink will setup all necessary directories:
@@ -29,7 +27,7 @@
 
 Or, optionally, if you prefer not to build from source:
 ```bash
-cargo install --git "https://github.com/ehuff700/cmdlink.git"
+cargo install cmdlink
 ```
 
 ## Usage
@@ -102,6 +100,9 @@ another_alias = { cmd = "ls -la", description = "Lists all files in long format"
 ```
 
 The cmdlink application reads from this file and creates binary links in the bins directory based on the commands specified for each alias.
+
+You **should not** manually edit this file, but if you do, run cmdlink refresh to save your changes to the bin files.
+
 Directory Structure
 
     config.toml: Stores alias names, commands, and descriptions.
