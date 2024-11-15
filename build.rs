@@ -5,6 +5,9 @@ fn add_to_user_path(new_path: &str) -> Result<(), Box<dyn std::error::Error>> {
 	#[cfg(target_os = "windows")]
 	add_win_path(new_path)?;
 
+	#[cfg(target_os = "macos")]
+	add_macos_path(new_path)?;
+
 	Ok(())
 }
 
@@ -72,5 +75,29 @@ fn add_win_path(new_path: &str) -> Result<(), Box<dyn std::error::Error>> {
 		])
 		.gui(true)
 		.status()?;
+	Ok(())
+}
+
+#[cfg(target_family = "unix")]
+/// Adds a new path to /etc/paths on MacOs.
+fn add_macos_path(new_path: &str) -> Result<(), Box<dyn std::error::Error>> {
+	use std::{
+		fs::{self, File},
+		io::Write,
+	};
+
+	let profile_file = dirs::home_dir().expect("home directory not found!").join(".profile");
+	// If .profile file doesn't exist, create it.
+	let mut file = if !profile_file.exists() {
+		File::create_new(&profile_file)?
+	} else {
+		File::options().append(true).create(true).open(&profile_file)?
+	};
+
+	// Read the profile file. If the new path is not already in the PATH, add it.
+	let profile = fs::read_to_string(&profile_file)?;
+	if !profile.lines().any(|l| l.contains(new_path)) {
+		file.write_all(format!("export PATH=$PATH:{}\n", new_path).as_bytes())?;
+	}
 	Ok(())
 }
