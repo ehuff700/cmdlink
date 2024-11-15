@@ -2,6 +2,7 @@ use std::{
 	fs::File,
 	io::{ErrorKind, Write},
 	path::Path,
+	process::Command,
 };
 
 use crate::{error::Error, Result, PROJECT_DIR};
@@ -78,6 +79,13 @@ impl PlatformBinary {
 		})?;
 		file.write_all(self.contents().as_bytes())
 			.map_err(|e| Error::LinkCreation(self.alias().to_string(), e))?;
+		
+		#[cfg(target_family = "unix")]
+		Command::new("chmod")
+			.arg("+x")
+			.arg(file_path)
+			.status()
+			.map_err(|e| Error::LinkCreation(self.alias().to_string(), e))?;
 		Ok(())
 	}
 
@@ -110,7 +118,9 @@ pub trait Link {
 		if cfg!(target_os = "windows") {
 			".bat"
 		} else {
-			".sh"
+			// No extension for Unix/Linux, so that users don't have to type
+			// the extension.
+			""
 		}
 	}
 	/// The file path of the link file.
